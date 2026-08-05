@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚠️ SISTEMA COMPROMETIDO ⚠️</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #0a0a0a;
+            color: #ff3333;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .screen.active {
+            display: flex;
+        }
+        #welcome-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            z-index: 100;
+        }
+        .btn-enter {
+            background-color: #ff0000;
+            color: #ffffff;
+            border: none;
+            padding: 18px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6), 0 0 30px rgba(255, 0, 0, 0.3);
+            transition: all 0.2s;
+            z-index: 200;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .btn-enter:hover {
+            background-color: #cc0000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+        }
+        .warning-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+            letter-spacing: 2px;
+            line-height: 1.4;
+            max-width: 90%;
+            z-index: 20;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            animation: glitch 3s infinite;
+        }
+        @keyframes glitch {
+            2%, 64% { transform: translate(0, 0); }
+            4%, 60% { transform: translate(-3px, 2px); }
+            62% { transform: translate(3px, -2px); }
+        }
+        
+        /* Fondo Matrix */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+            background-color: #0a0a0a;
+            display: none;
+        }
+        .matrix-bg.active {
+            display: block;
+        }
+        
+        .char {
+            position: absolute;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            animation: fallDown 12s linear infinite;
+            opacity: 0;
+            text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+        }
+        @keyframes fallDown {
+            0% { transform: translateY(-100vh); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        .char:nth-child(3n) { animation-duration: 8s; }
+        .char:nth-child(5n) { animation-duration: 15s; }
+        .char:nth-child(7n) { animation-duration: 10s; }
+        .char:nth-child(11n) { animation-duration: 18s; }
+
+        /* Efecto CRT */
+        .crt-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+            animation: scanline 0.1s linear infinite;
+        }
+        @keyframes scanline {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 4px; }
+        }
+
+        /* Cursor parpadeante */
+        .cursor-blink {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #00ff00;
+            font-size: 20px;
+            z-index: 999;
+            animation: blink 0.5s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Terminal falsa */
+        .fake-terminal {
+            position: fixed;
+            bottom: 60px;
+            left: 20px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            z-index: 999;
+            background: rgba(0,0,0,0.9);
+            padding: 10px 15px;
+            border-radius: 5px;
+            border-left: 3px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0,255,0,0.2);
+            min-width: 200px;
+        }
+        .fake-terminal .prompt { color: #00ff00; }
+        .fake-terminal .cmd { color: #ffff00; }
+        .fake-terminal .ip { color: #ffffff; }
+        .fake-terminal .status { color: #ff00ff; animation: blink 0.5s infinite; }
+
+        /* Ventanas emergentes */
+        .popup {
+            position: fixed;
+            z-index: 1000;
+            background: #1a1a1a;
+            border: 2px solid #ff0000;
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 300px;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 50px rgba(255,0,0,0.5);
+            animation: popIn 0.5s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .popup .title {
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ff0000;
+            padding-bottom: 5px;
+        }
+        .popup .content {
+            color: #cccccc;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .popup .close-btn {
+            background: #ff0000;
+            color: #fff;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            float: right;
+            border-radius: 3px;
+        }
+
+        /* Estadísticas */
+        .stats {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+            background: rgba(0,0,0,0.85);
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #00ff00;
+            font-size: 12px;
+            color: #00ff00;
+            min-width: 200px;
+            text-align: left;
+        }
+        .stats .label { color: #66ff66; }
+        .stats .value { color: #ffffff; float: right; }
+        .stats .bar {
+            width: 100%;
+            height: 4px;
+            background: #003300;
+            margin: 3px 0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .stats .bar .fill {
+            height: 100%;
+            background: #00ff00;
+            animation: fillBar 2s ease-in-out infinite;
+        }
+        @keyframes fillBar {
+            0% { width: 20%; }
+            50% { width: 80%; }
+            100% { width: 20%; }
+        }
+
+        /* Scanner */
+        .scanner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff00, transparent);
+            z-index: 999;
+            animation: scan 3s linear infinite;
+            opacity: 0.3;
+            box-shadow: 0 0 20px #00ff00;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        /* Radar */
+        .radar {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 1px solid #00ff00;
+            z-index: 999;
+            background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%);
+            box-shadow: 0 0 30px rgba(0,255,0,0.2);
+        }
+        .radar::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 45px;
+            background: #00ff00;
+            transform-origin: bottom center;
+            animation: radarSpin 2s linear infinite;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        @keyframes radarSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .radar .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ff0000;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff0000;
+            animation: radarDot 3s ease-in-out infinite;
+        }
+        @keyframes radarDot {
+            0%, 100% { top: 30%; left: 30%; opacity: 1; }
+            50% { top: 70%; left: 70%; opacity: 0; }
+        }
+
+        /* Texto de "escribiendo" */
+        .typing-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+            color: #00ff00;
+            font-size: 14px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #00ff00;
+            max-width: 500px;
+            display: none;
+        }
+
+        /* Líneas de código de colores */
+        .code-line-colors {
+            position: fixed;
+            z-index: 999;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Glitch overlay */
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 998;
+            pointer-events: none;
+            background: transparent;
+            animation: glitchOverlay 0.1s infinite;
+            display: none;
+        }
+        @keyframes glitchOverlay {
+            0%, 90% { opacity: 0; }
+            95% { opacity: 0.3; background: rgba(255,0,0,0.1); }
+            100% { opacity: 0; }
+        }
+
+        /* Hex display */
+        .hex-display {
+            position: fixed;
+            bottom: 20px;
+            right: 130px;
+            z-index: 999;
+            color: #00ff00;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            background: rgba(0,0,0,0.8);
+            padding: 5px 10px;
+            border-radius: 3px;
+            border: 1px solid #003300;
+            opacity: 0.6;
+        }
+
+        /* Barras de carga */
+        .load-bar {
+            position: fixed;
+            bottom: 150px;
+            left: 20px;
+            z-index: 999;
+            width: 200px;
+            background: rgba(0,0,0,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ff00;
+            display: none;
+        }
+        .load-bar .label {
+            color: #00ff00;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .load-bar .progress {
+            width: 100%;
+            height: 20px;
+            background: #001100;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        .load-bar .progress .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #33ff33);
+            width: 0%;
+            animation: loading 5s ease-in-out infinite;
+            position: relative;
+        }
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 75%; }
+            100% { width: 100%; }
+        }
+        .load-bar .progress .text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 12px;
+        }
+
+        /* Efecto de estática */
+        .static {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 997;
+            pointer-events: none;
+            background: repeating-conic-gradient(
+                rgba(0,255,0,0.02) 0% 25%,
+                transparent 0% 50%
+            ) 0 0 / 20px 20px;
+            animation: static 0.05s linear infinite;
+            display: none;
+        }
+        @keyframes static {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 20px; }
+        }
+
+        /* Frases de películas */
+        .movie-quote {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 999;
+            color: #00ff00;
+            font-size: 12px;
+            font-style: italic;
+            opacity: 0.5;
+            text-align: right;
+            line-height: 1.6;
+        }
+
+        /* IP y ubicación falsa */
+        .fake-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 999;
+            color: #00ff00;
+            font-size: 11px;
+            background: rgba(0,0,0,0.85);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #003300;
+            line-height: 1.6;
+            min-width: 150px;
+        }
+        .fake-info .label { color: #66ff66; }
+        .fake-info .value { color: #ffffff; }
+
+        /* Logs del sistema */
+        .system-logs {
+            position: fixed;
+            bottom: 200px;
+            left: 20px;
+            z-index: 999;
+            color: #00ff00;
+            font-size: 11px;
+            background: rgba(0,0,0,0.85);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #003300;
+            max-height: 100px;
+            overflow: hidden;
+            min-width: 250px;
+            display: none;
+        }
+        .system-logs .log-entry {
+            opacity: 0;
+            animation: logFade 2s linear forwards;
+        }
+        @keyframes logFade {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .system-logs .log-entry .time { color: #66ff66; }
+        .system-logs .log-entry .info { color: #33ff33; }
+        .system-logs .log-entry .error { color: #ff3333; }
+
+        /* Código ASCII */
+        .ascii-art {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 998;
+            color: #00ff00;
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+            opacity: 0.1;
+            white-space: pre;
+            line-height: 1;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Bienvenida -->
+    <div id="welcome-screen" class="screen active">
+        <button id="btn-entrar" class="btn-enter" onclick="iniciarExperiencia()">⚠️ ENTRAR ⚠️</button>
+    </div>
+
+    <!-- Fondo Matrix -->
+    <div id="matrix-bg" class="matrix-bg"></div>
+
+    <!-- Efectos visuales -->
+    <div class="crt-effect"></div>
+    <div class="scanner"></div>
+    <div class="glitch-overlay" id="glitchOverlay"></div>
+    <div class="static" id="staticEffect"></div>
+    
+    <!-- Cursor -->
+    <div class="cursor-blink">█</div>
+    
+    <!-- Terminal -->
+    <div class="fake-terminal" id="fakeTerminal">
+        <span class="prompt">$</span> 
+        <span class="cmd">hacking</span> 
+        <span class="ip">127.0.0.1</span>
+        <span class="status">█</span>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats" id="stats">
+        <div><span class="label">🖥️ CPU:</span> <span class="value" id="cpuValue">37%</span></div>
+        <div class="bar"><div class="fill"></div></div>
+        <div><span class="label">💾 RAM:</span> <span class="value" id="ramValue">2.4/8.0 GB</span></div>
+        <div class="bar"><div class="fill"></div></div>
+        <div><span class="label">📡 PACKETS:</span> <span class="value" id="packetValue">1,247</span></div>
+        <div><span class="label">🔗 CONNECTIONS:</span> <span class="value" id="connectionValue">42</span></div>
+    </div>
+
+    <!-- Radar -->
+    <div class="radar">
+        <div class="dot"></div>
+    </div>
+
+    <!-- Hex display -->
+    <div class="hex-display" id="hexDisplay">0x7F 0x3A 0xFF</div>
+
+    <!-- Barra de carga -->
+    <div class="load-bar" id="loadBar">
+        <div class="label">📥 DECRYPTING...</div>
+        <div class="progress">
+            <div class="fill"></div>
+            <div class="text" id="loadText">45%</div>
+        </div>
+    </div>
+
+    <!-- Información falsa -->
+    <div class="fake-info" id="fakeInfo">
+        <div><span class="label">🌐 IP:</span> <span class="value" id="ipValue">192.168.1.45</span></div>
+        <div><span class="label">📍 LOCATION:</span> <span class="value" id="locValue">Unknown</span></div>
+        <div><span class="label">💻 DEVICE:</span> <span class="value" id="deviceValue">HACKER-PC</span></div>
+    </div>
+
+    <!-- Logs del sistema -->
+    <div class="system-logs" id="systemLogs">
+        <div class="log-entry"><span class="time">[12:47:23]</span> <span class="info">Connection established</span></div>
+        <div class="log-entry"><span class="time">[12:47:25]</span> <span class="info">Sending payload...</span></div>
+        <div class="log-entry"><span class="time">[12:47:28]</span> <span class="error">⚠️ Firewall detected</span></div>
+        <div class="log-entry"><span class="time">[12:47:30]</span> <span class="info">Bypassing...</span></div>
+    </div>
+
+    <!-- Frase de película -->
+    <div class="movie-quote" id="movieQuote">"I'm in." - The Matrix</div>
+
+    <!-- Contenedor de pantallas -->
+    <div id="screens-container"></div>
+
+    <script>
+        const totalScreens = 25;
+        let currentScreen = 0;
+        let popupInterval, logInterval, hexInterval, statInterval;
+
+        function getMessage(num) {
+            if (num >= 21 && num <= 25) return "⚠️ ESTÁS SIENDO JACKEADO ⚠️";
+            else if (num >= 16 && num <= 20) return "⛔ NO INTENTES NADA, MUY PRONTO TERMINARÁ ⛔";
+            else if (num >= 11 && num <= 15) return "😈 NO TE ALTERES... ESTO ES SOLO EL PRINCIPIO 😈";
+            else if (num >= 6 && num <= 10) return "⌛ YA FALTA POCO... PREPÁRATE ⌛";
+            else if (num >= 1 && num <= 5) return "✅ LISTO. EL SISTEMA HA SIDO COMPROMETIDO ✅";
+            return "";
+        }
+
+        function getRandomChar() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/abcdefghijklmnopqrstuvwxyz';
+            return chars[Math.floor(Math.random() * chars.length)];
+        }
+
+        function getRandomColor() {
+            const colors = [
+                '#00ff00', '#33ff33', '#66ff66', '#99ff99', '#ccffcc',
+                '#00cc00', '#00ff44', '#44ff00', '#00ff88', '#88ff00',
+                '#ff00ff', '#ff6600', '#ffcc00', '#00ccff', '#ff0066',
+                '#66ffcc', '#cc66ff', '#ffcc66', '#66ccff', '#ff66cc',
+                '#ff0000', '#00ffcc', '#ff00cc', '#ccff00', '#00ff99',
+                '#ff3399', '#33ff99', '#9933ff', '#ff9933', '#33ccff',
+                '#ff3366', '#66ff33', '#cc33ff', '#33ffcc', '#ffcc33'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function getRandomIP() {
+            return Math.floor(Math.random() * 255) + '.' + 
+                   Math.floor(Math.random() * 255) + '.' + 
+                   Math.floor(Math.random() * 255) + '.' + 
+                   Math.floor(Math.random() * 255);
+        }
+
+        function createMatrixBackground() {
+            const container = document.getElementById('matrix-bg');
+            const numChars = 350;
+            for (let i = 0; i < numChars; i++) {
+                const char = document.createElement('div');
+                char.className = 'char';
+                char.textContent = getRandomChar();
+                char.style.color = getRandomColor();
+                char.style.left = Math.random() * 100 + '%';
+                char.style.top = Math.random() * 100 + '%';
+                char.style.fontSize = (8 + Math.random() * 20) + 'px';
+                char.style.animationDelay = (Math.random() * 12) + 's';
+                char.style.animationDuration = (8 + Math.random() * 10) + 's';
+                if (Math.random() > 0.7) {
+                    char.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
+                }
+                container.appendChild(char);
+            }
+        }
+
+        function createPopups() {
+            const messages = [
+                { title: '⚠️ ACCESO NO AUTORIZADO', content: 'Se ha detectado una intrusión en el sistema. Todas las conexiones están siendo monitoreadas.' },
+                { title: '🔒 SISTEMA COMPROMETIDO', content: 'Firewall desactivado. Acceso root concedido. Descargando datos sensibles...' },
+                { title: '💀 VIRUS DETECTADO', content: 'El sistema ha sido infectado. Todos los archivos están siendo encriptados.' },
+                { title: '🛡️ ESCUDO DESACTIVADO', content: 'Protocolos de seguridad eliminados. El sistema está completamente expuesto.' },
+                { title: '📡 SEÑAL INTERCEPTADA', content: 'Transmisión de datos detectada. Interceptando paquetes de información...' }
+            ];
+            
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            const msg = messages[Math.floor(Math.random() * messages.length)];
+            popup.style.top = (10 + Math.random() * 60) + '%';
+            popup.style.left = (10 + Math.random() * 60) + '%';
+            popup.innerHTML = `
+                <div class="title">${msg.title}</div>
+                <div class="content">${msg.content}</div>
+                <button class="close-btn" onclick="this.parentElement.remove()">✕</button>
+            `;
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 5000);
+        }
+
+        function updateStats() {
+            const cpu = Math.floor(Math.random() * 60) + 30;
+            const ram = (Math.random() * 6 + 2).toFixed(1);
+            const packets = Math.floor(Math.random() * 3000) + 500;
+            const connections = Math.floor(Math.random() * 100) + 10;
+            
+            document.getElementById('cpuValue').textContent = cpu + '%';
+            document.getElementById('ramValue').textContent = ram + '/8.0 GB';
+            document.getElementById('packetValue').textContent = packets.toLocaleString();
+            document.getElementById('connectionValue').textContent = connections;
+        }
+
+        function updateHex() {
+            const hex = [];
+            for (let i = 0; i < 5; i++) {
+                hex.push('0x' + Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, '0'));
+            }
+            document.getElementById('hexDisplay').textContent = hex.join(' ');
+        }
+
+        function updateIP() {
+            document.getElementById('ipValue').textContent = getRandomIP();
+            const locations = ['Unknown', 'Dark Web', 'TOR Network', 'VPN-Protected', 'Anonymous Proxy'];
+            document.getElementById('locValue').textContent = locations[Math.floor(Math.random() * locations.length)];
+        }
+
+        function addLog() {
+            const logs = document.getElementById('systemLogs');
+            const entries = [
+                { type: 'info', msg: 'Scanning ports...' },
+                { type: 'info', msg: 'Exploiting vulnerability...' },
+                { type: 'error', msg: '⚠️ Intrusion detected!' },
+                { type: 'info', msg: 'Bypassing firewall...' },
+                { type: 'info', msg: 'Downloading data...' },
+                { type: 'error', msg: '⚠️ Security alert!' },
+                { type: 'info', msg: 'Access granted.' },
+                { type: 'info', msg: 'Sending payload...' }
+            ];
+            const entry = entries[Math.floor(Math.random() * entries.length)];
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            const time = new Date().toTimeString().slice(0, 8);
+            logEntry.innerHTML = `<span class="time">[${time}]</span> <span class="${entry.type}">${entry.msg}</span>`;
+            logs.appendChild(logEntry);
+            if (logs.children.length > 20) {
+                logs.removeChild(logs.firstChild);
+            }
+            logs.style.display = 'block';
+        }
+
+        function glitchEffect() {
+            const overlay = document.getElementById('glitchOverlay');
+            overlay.style.display = 'block';
+            setTimeout(() => overlay.style.display = 'none', 100);
+        }
+
+        function updateLoadBar() {
+            const bar = document.getElementById('loadBar');
+            const text = document.getElementById('loadText');
+            const progress = Math.floor(Math.random() * 30) + 70;
+            text.textContent = progress + '%';
+            bar.style.display = 'block';
+            setTimeout(() => bar.style.display = 'none', 3000);
+        }
+
+        function createASCIIArt() {
+            const art = document.createElement('div');
+            art.className = 'ascii-art';
+            art.textContent = `
+    ╔═══════════════════════════════════╗
+    ║  H A C K    T H E    P L A N E T  ║
+    ╚═══════════════════════════════════╝
+            `;
+            art.style.display = 'block';
+            document.body.appendChild(art);
+            setTimeout(() => art.remove(), 3000);
+        }
+
+        function startHackerEffects() {
+            // Popups aleatorios
+            popupInterval = setInterval(() => {
+                if (Math.random() > 0.7) createPopups();
+            }, 3000);
+
+            // Estadísticas
+            statInterval = setInterval(updateStats, 1000);
+
+            // Hex display
+            hexInterval = setInterval(updateHex, 1500);
+
+            // Logs
+            logInterval = setInterval(addLog, 4000);
+
+            // Glitch ocasional
+            setInterval(() => {
+                if (Math.random() > 0.85) {
+                    glitchEffect();
+                    document.getElementById('staticEffect').style.display = 'block';
+                    setTimeout(() => document.getElementById('staticEffect').style.display = 'none', 200);
+                }
+            }, 2000);
+
+            // Barra de carga aleatoria
+            setInterval(() => {
+                if (Math.random() > 0.8) updateLoadBar();
+            }, 5000);
+
+            // Cambiar IP
+            setInterval(updateIP, 8000);
+
+            // Cambiar frase
+            const quotes = [
+                '"I\'m in." - The Matrix',
+                '"Hack the planet!" - Hackers',
+                '"Access granted." - Mr. Robot',
+                '"The cake is a lie." - Portal',
+                '"Hello, world." - Every hacker ever'
+            ];
+            setInterval(() => {
+                document.getElementById('movieQuote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+            }, 5000);
+
+            // ASCII art ocasional
+            setInterval(() => {
+                if (Math.random() > 0.9) createASCIIArt();
+            }, 8000);
+        }
+
+        // Crear pantallas
+        const container = document.getElementById('screens-container');
+        for (let i = 25; i >= 1; i--) {
+            const div = document.createElement('div');
+            div.className = 'screen';
+            div.id = 'screen-' + i;
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'warning-text';
+            textDiv.innerText = getMessage(i);
+            
+            div.appendChild(textDiv);
+            container.appendChild(div);
+        }
+
+        createMatrixBackground();
+
+        function iniciarExperiencia() {
+            const welcome = document.getElementById('welcome-screen');
+            if (welcome) welcome.remove();
+
+            document.getElementById('matrix-bg').classList.add('active');
+
+            history.replaceState({ screen: 0 }, "", "");
+            for (let i = 1; i <= 25; i++) {
+                history.pushState({ screen: i }, "", "");
+            }
+
+            currentScreen = 25;
+            actualizarVisualizacion();
+            
+            startHackerEffects();
+        }
+
+        window.addEventListener('popstate', function(event) {
+            if (event.state && typeof event.state.screen !== 'undefined') {
+                currentScreen = event.state.screen;
+                actualizarVisualizacion();
+            }
+        });
+
+        function actualizarVisualizacion() {
+            for (let i = 1; i <= totalScreens; i++) {
+                const s = document.getElementById('screen-' + i);
+                if (s) s.classList.remove('active');
+            }
+
+            if (currentScreen >= 1 && currentScreen <= 25) {
+                const targetScreen = document.getElementById('screen-' + currentScreen);
+                if (targetScreen) targetScreen.classList.add('active');
+            }
+        }
+
+        // Iniciar estadísticas desde el principio (pero congeladas hasta que se entre)
+        updateStats();
+    </script>
+</body>
+</html>
